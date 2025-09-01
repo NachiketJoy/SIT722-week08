@@ -1,6 +1,6 @@
 # week08/.github/workflows/backend_ci.yml
 
-# Trigger Backend CI/CD workflow to test, build and push Docker images to ACR.
+# Trigger Backend CI/CD workflow to test, build and push Docker images to ACR
 
 name: Backend CI - Test, Build and Push Images to ACR
 
