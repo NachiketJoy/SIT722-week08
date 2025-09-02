@@ -2,9 +2,6 @@
 
 name: CD - Deploy Frontend to AKS
 
-    const PRODUCT_API_BASE_URL = '4.254.38.183:8000';
-    const ORDER_API_BASE_URL = '4.237.152.2:8001';
-
 # This workflow can be called by other workflows and takes inputs.
 # Or it can be run manually if you provide the IPs.
 on:
