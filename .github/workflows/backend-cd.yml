@@ -44,7 +44,7 @@ jobs:
       #     az aks update --name ${{ github.event.inputs.aks_cluster_name }} --resource-group ${{ github.event.inputs.aks_resource_group }} --attach-acr ${{ github.event.inputs.aks_acr_name }}
 
       - name: Docker Login to ACR
-        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login nachiketacr.azurecr.io -u ${{ secrets.ACR_USERNAME }} --password-stdin
+        run: echo "${{ secrets.ACR_PASSWORD }}" | docker login sit722w8.azurecr.io -u ${{ secrets.ACR_USERNAME }} --password-stdin
 
       - name: Deploy Backend Infrastructure (Namespace, ConfigMaps, Secrets, Databases)
         run: |
