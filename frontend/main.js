@@ -7,8 +7,8 @@ document.addEventListener('DOMContentLoaded', () => {
     // const PRODUCT_API_BASE_URL = 'http://4.254.38.183:8000';
     // const ORDER_API_BASE_URL = 'http://4.237.152.2:8001';
 
-    const PRODUCT_API_BASE_URL = '_PRODUCT_API_URL_';
-    const ORDER_API_BASE_URL = '_ORDER_API_URL_';
+    const PRODUCT_API_BASE_URL = _PRODUCT_API_URL_;
+    const ORDER_API_BASE_URL = _ORDER_API_URL_;
 
     // Product Service is named 'product-service-w04e2' and exposes port 8000 internally.
     //const PRODUCT_API_BASE_URL = 'http://product-service-w04e2:8000';
