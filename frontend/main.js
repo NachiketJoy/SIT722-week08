@@ -10,6 +10,8 @@ document.addEventListener('DOMContentLoaded', () => {
     const PRODUCT_API_BASE_URL = _PRODUCT_API_URL_;
     const ORDER_API_BASE_URL = _ORDER_API_URL_;
 
+    console.log('updated one');
+
     // Product Service is named 'product-service-w04e2' and exposes port 8000 internally.
     //const PRODUCT_API_BASE_URL = 'http://product-service-w04e2:8000';
     // Order Service is named 'order-service-w04e2' and exposes port 8001 internally.
@@ -113,6 +115,9 @@ document.addEventListener('DOMContentLoaded', () => {
         const description = document.getElementById('product-description').value;
 
         const newProduct = { name, price, stock_quantity, description };
+
+        console.log("Product API Base URL:", PRODUCT_API_BASE_URL);
+        console.log("Order API Base URL:", ORDER_API_BASE_URL);
 
         try {
             const response = await fetch(`${PRODUCT_API_BASE_URL}/products/`, {
