@@ -26,7 +26,6 @@ jobs:
   # use centralized Azure login workflow
   azure_login:
     uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
-    with:
     secrets:
       AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
       ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}

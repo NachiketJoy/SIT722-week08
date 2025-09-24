@@ -29,17 +29,17 @@ env:
 
 jobs:
   azure_login:
-  uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
-  with:
-  secrets:
-    AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-    ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-    ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-    ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-    
+    uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
   # Job 1: Run tests and linting for all backend services
   test_and_lint_backends:
     runs-on: ubuntu-latest # Use a GitHub-hosted runner
+    needs: azure_login
 
     services:
       # Product DB container
