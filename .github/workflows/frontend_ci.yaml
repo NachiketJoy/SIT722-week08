@@ -19,6 +19,15 @@ env:
   IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}
 
 jobs:
+  # use centralized Azure login workflow
+  azure_login:
+    uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+      
   build_and_push_frontend:
     runs-on: ubuntu-latest
 
