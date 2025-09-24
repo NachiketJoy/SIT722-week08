@@ -3,16 +3,15 @@
 name: Frontend CI - Build & Push Image
 
 on:
-  # Manual trigger.
-  workflow_dispatch:
-
-  # Automatically on pushes to main branch
   push:
     branches:
       - main
-    paths: # Only trigger if changes are in the frontend directory
-      - 'frontend/**'
-      - '.github/workflows/frontend_ci.yml' # Trigger if this workflow file changes
+      - development
+      - 'feature/**'
+    pull_request:
+      branches:
+        - main
+        - development
 
 # Define global environment variables that can be used across jobs
 env:
@@ -31,21 +30,38 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Azure login using a Service Principal secret
-    - name: Azure Login
-      uses: azure/login@v1
+    # Add linting and testing steps for frontend code
+    - name: Set up Node.js
+      uses: actions/setup-node@v4
       with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }}
+        node-version: '18'
 
-    # Login to Azure Container Registry (ACR)
-    - name: Login to Azure Container Registry
-      run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
+    - name: Install dependencies
+      run: npm ci
+      working-directory: frontend
+
+    - name: Run lint
+      run: npm run lint
+      working-directory: frontend
+
+    - name: Run tests
+      run: npm test -- --watchAll=false
+      working-directory: frontend
+
+    # use centralized Azure login workflow
+    - name: Azure Login & ACR Auth
+      uses: ./.github/workflows/azure-login.yml
+      secrets:
+        AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+        ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+        ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     # Build and Push Docker image for Frontend
     - name: Build and Push Frontend Image
       run: |
-        docker build -t ${{ env.ACR_LOGIN_SERVER }}/frontend:v1 ./frontend/
-        docker push ${{ env.ACR_LOGIN_SERVER }}/frontend:v1
+        docker build -t ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ env.IMAGE_TAG }} ./frontend/
+        docker push ${{ env.ACR_LOGIN_SERVER }}/frontend:${{ env.IMAGE_TAG }}
 
     # Logout from Azure for security (runs even if image push fails)
     - name: Logout from Azure

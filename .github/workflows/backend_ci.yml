@@ -120,15 +120,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    # Azure login using a Service Principal secret
-    - name: Azure Login
-      uses: azure/login@v1
-      with:
-        creds: ${{ secrets.AZURE_CREDENTIALS }} # Needs to be set as a GitHub Secret (Service Principal JSON)
-
-    # Login to Azure Container Registry (ACR)
-    - name: Login to Azure Container Registry
-      run: az acr login --name ${{ env.ACR_LOGIN_SERVER }}
+        # Reuse centralized Azure login workflow
+    - name: Azure Login & ACR Auth
+      uses: ./.github/workflows/azure-login.yml
+      secrets:
+        AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+        ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+        ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+        ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     # Build and Push Docker image for Product Service
     - name: Build and Push Product Service Image
