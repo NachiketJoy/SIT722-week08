@@ -23,6 +23,16 @@ env:
   IMAGE_TAG: ${{ github.sha }}-${{ github.run_id }}
 
 jobs:
+  # use centralized Azure login workflow
+  azure_login:
+    uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
+    with:
+    secrets:
+      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
+      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
+      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
+      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
+
   build_and_push_frontend:
     runs-on: ubuntu-latest
 
@@ -47,16 +57,6 @@ jobs:
     - name: Run tests
       run: npm test -- --watchAll=false
       working-directory: frontend
-
-    # use centralized Azure login workflow
-    - name: Azure Login & ACR Auth
-      uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
-      with:
-      secrets:
-        AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-        ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-        ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-        ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
     # Build and Push Docker image for Frontend
     - name: Build and Push Frontend Image
