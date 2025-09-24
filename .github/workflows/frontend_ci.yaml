@@ -45,10 +45,6 @@ jobs:
       with:
         node-version: '18'
 
-    - name: Install dependencies
-      run: npm install
-      working-directory: frontend
-
     - name: Run lint
       run: npm run lint
       working-directory: frontend
