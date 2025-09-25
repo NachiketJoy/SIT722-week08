@@ -129,6 +129,14 @@ jobs:
     - name: Checkout repository
       uses: actions/checkout@v4
 
+    # Log in to Azure Container Registry
+    - name: Log in to ACR
+      uses: docker/login-action@v2
+      with:
+        registry: ${{ secrets.ACR_LOGIN_SERVER }}
+        username: ${{ secrets.ACR_USERNAME }}
+        password: ${{ secrets.ACR_PASSWORD }}
+
     # Build and Push Docker image for Product Service
     - name: Build and Push Product Service Image
       run: |
