@@ -8,7 +8,7 @@ on:
         required: true
         default: 'http://4.254.38.183:8000'
       order_api_ip:
-        description: 'External IP of Order Service'
+        description: 'External IP of Order Service (e.g., http://Y.Y.Y.Y:8001)'
         required: true
         default: 'http://4.237.152.2:8001'
       aks_cluster_name:
@@ -50,16 +50,18 @@ jobs:
       - name: Azure Login via OIDC
         uses: azure/login@v1
         with:
-          auth-type: OIDC
+          client-id: ${{ secrets.AZURE_CLIENT_ID }}
+          tenant-id: ${{ secrets.AZURE_TENANT_ID }}
           subscription-id: ${{ secrets.AZURE_SUBSCRIPTION_ID }}
 
       - name: Inject Backend IPs into Frontend main.js
         run: |
+          echo "Injecting IPs into frontend/main.js"
           sed -i "s|_PRODUCT_API_URL_|${{ inputs.product_api_ip }}|g" frontend/main.js
           sed -i "s|_ORDER_API_URL_|${{ inputs.order_api_ip }}|g" frontend/main.js
-          echo "--- Modified main.js ---"
+          echo "--- Modified main.js content ---"
           cat frontend/main.js
-          echo "------------------------"
+          echo "---------------------------------"
 
       - name: Inject dynamic image tag into frontend.yaml
         run: |
@@ -75,17 +77,21 @@ jobs:
       - name: Build and Push Frontend Image
         run: |
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+          echo "Building image: $IMAGE_TAG"
           docker build -t $IMAGE_TAG ./frontend/
+          echo "Pushing image: $IMAGE_TAG"
           docker push $IMAGE_TAG
 
-      - name: Set Kubernetes context
+      - name: Set Kubernetes context (get AKS credentials)
         uses: azure/aks-set-context@v3
         with:
           resource-group: ${{ inputs.aks_resource_group }}
           cluster-name: ${{ inputs.aks_cluster_name }}
 
       - name: Deploy Frontend to AKS
-        run: kubectl apply -f k8s/frontend.yaml
+        run: |
+          echo "Deploying frontend to AKS cluster: ${{ inputs.aks_cluster_name }}"
+          kubectl apply -f k8s/frontend.yaml
 
       - name: Logout from Azure
         run: az logout || true
