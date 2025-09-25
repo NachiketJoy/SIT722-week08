@@ -45,6 +45,7 @@ jobs:
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
   deploy_frontend:
+    needs: azure_login
     runs-on: ubuntu-latest
     environment: Production
 
@@ -54,7 +55,7 @@ jobs:
 
       - name: Inject Backend IPs into Frontend main.js
         run: |
-          echo "Injecting IPs into frontend/static/js/main.js"
+          echo "Injecting IPs into frontend/main.js"
           sed -i "s|_PRODUCT_API_URL_|${{ inputs.product_api_ip }}|g" frontend/main.js
           sed -i "s|_ORDER_API_URL_|${{ inputs.order_api_ip }}|g" frontend/main.js
           echo "--- Modified main.js content ---"
@@ -70,6 +71,7 @@ jobs:
           IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
           echo "Building image: $IMAGE_TAG"
           docker build -t $IMAGE_TAG ./frontend/
+          echo "Pushing image: $IMAGE_TAG"
           docker push $IMAGE_TAG
 
       - name: Set Kubernetes context (get AKS credentials)
@@ -80,9 +82,8 @@ jobs:
 
       - name: Deploy Frontend to AKS
         run: |
-          echo "Deploying frontend with latest tag to AKS cluster: ${{ inputs.aks_cluster_name }}"
-          cd k8s/
-          kubectl apply -f frontend.yaml
+          echo "Deploying frontend to AKS cluster: ${{ inputs.aks_cluster_name }}"
+          kubectl apply -f k8s/frontend.yaml
 
-      - name: Logout from Azure (AKS deployment)
+      - name: Logout from Azure
         run: az logout
