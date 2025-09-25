@@ -109,5 +109,5 @@ jobs:
     with:
       product_api_ip: ${{ needs.deploy_backend.outputs.PRODUCT_API_IP }}
       order_api_ip: ${{ needs.deploy_backend.outputs.ORDER_API_IP }}
-      aks_cluster_name: 'deakinlab'
-      aks_resource_group: 'deakinuni'
+      aks_cluster_name: 'week08'
+      aks_resource_group: 'SIT722RG'
