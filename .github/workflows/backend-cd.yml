@@ -16,39 +16,20 @@ on:
         description: 'Resource Group of the AKS Cluster'
         required: true
 
-  workflow_call:
-    inputs:
-      product_api_ip:
-        required: true
-        type: string
-      order_api_ip:
-        required: true
-        type: string
-      aks_cluster_name:
-        required: true
-        type: string
-      aks_resource_group:
-        required: true
-        type: string
-
 jobs:
-  # Reuse centralized Azure login workflow
-  azure_login:
-    uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
-    secrets:
-      AZURE_CREDENTIALS: ${{ secrets.AZURE_CREDENTIALS }}
-      ACR_LOGIN_SERVER: ${{ secrets.ACR_LOGIN_SERVER }}
-      ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
-      ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
-
   deploy_frontend:
-    needs: azure_login
     runs-on: ubuntu-latest
     environment: Production
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
+
+      - name: Log in to Azure
+        uses: azure/login@v1
+        with:
+          creds: ${{ secrets.AZURE_CREDENTIALS }}
+          enable-AzPSSession: true
 
       - name: Inject Backend IPs into frontend/main.js
         run: |
@@ -78,10 +59,8 @@ jobs:
           docker push $IMAGE_TAG
 
       - name: Set Kubernetes context (get AKS credentials)
-        uses: azure/aks-set-context@v3
-        with:
-          resource-group: ${{ inputs.aks_resource_group }}
-          cluster-name: ${{ inputs.aks_cluster_name }}
+        run: |
+          az aks get-credentials --resource-group ${{ inputs.aks_resource_group }} --name ${{ inputs.aks_cluster_name }} --overwrite-existing
 
       - name: Deploy Frontend to AKS
         run: |
