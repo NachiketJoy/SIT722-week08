@@ -1,23 +1,38 @@
-name: CD - Deploy Backend Services to AKS
+name: CD - Deploy Frontend to AKS
 
 on:
   workflow_dispatch:
     inputs:
+      product_api_ip:
+        description: 'External IP of Product Service'
+        required: true
+      order_api_ip:
+        description: 'External IP of Order Service'
+        required: true
       aks_cluster_name:
         description: 'Name of the AKS Cluster to deploy to'
         required: true
-        default: 'week08'
       aks_resource_group:
         description: 'Resource Group of the AKS Cluster'
         required: true
-        default: 'SIT722RG'
-      aks_acr_name:
-        description: 'Name of ACR'
+
+  workflow_call:
+    inputs:
+      product_api_ip:
         required: true
-        default: 'ssit722w8'
+        type: string
+      order_api_ip:
+        required: true
+        type: string
+      aks_cluster_name:
+        required: true
+        type: string
+      aks_resource_group:
+        required: true
+        type: string
 
 jobs:
-  # use centralized Azure login workflow
+  # Reuse centralized Azure login workflow
   azure_login:
     uses: NachiketJoy/SIT722-week08/.github/workflows/azure-login.yml@main
     secrets:
@@ -26,33 +41,27 @@ jobs:
       ACR_USERNAME: ${{ secrets.ACR_USERNAME }}
       ACR_PASSWORD: ${{ secrets.ACR_PASSWORD }}
 
-  deploy_backend:
+  deploy_frontend:
     needs: azure_login
     runs-on: ubuntu-latest
     environment: Production
-
-    outputs:
-      PRODUCT_API_IP: ${{ steps.get_product_ip.outputs.external_ip }}
-      ORDER_API_IP: ${{ steps.get_order_ip.outputs.external_ip }}
 
     steps:
       - name: Checkout repository
         uses: actions/checkout@v4
 
-      - name: Log in to Azure
-        uses: azure/login@v1
-        with:
-          creds: ${{ secrets.AZURE_CREDENTIALS }}
-
-      # Set Kubernetes context using Azure CLI (assumes az CLI already authenticated in azure-login)
-      - name: Set Kubernetes context (get AKS credentials)
+      - name: Inject Backend IPs into frontend/main.js
         run: |
-          az aks get-credentials \
-            --resource-group ${{ github.event.inputs.aks_resource_group }} \
-            --name ${{ github.event.inputs.aks_cluster_name }} \
-            --overwrite-existing
+          sed -i "s|_PRODUCT_API_URL_|${{ inputs.product_api_ip }}|g" frontend/main.js
+          sed -i "s|_ORDER_API_URL_|${{ inputs.order_api_ip }}|g" frontend/main.js
+          echo "--- Modified main.js ---"
+          cat frontend/main.js
+          echo "------------------------"
 
-      # Docker Login to ACR (same as frontend workflow)
+      - name: Inject dynamic image tag into k8s/frontend.yaml
+        run: |
+          sed -i "s|image: sit722w8.azurecr.io/frontend:.*|image: sit722w8.azurecr.io/frontend:${{ github.sha }}|g" k8s/frontend.yaml
+
       - name: Log in to ACR
         uses: docker/login-action@v2
         with:
@@ -60,66 +69,24 @@ jobs:
           username: ${{ secrets.ACR_USERNAME }}
           password: ${{ secrets.ACR_PASSWORD }}
 
-      - name: Deploy Backend Infrastructure (Namespace, ConfigMaps, Secrets, Databases)
+      - name: Build and Push Frontend Image
         run: |
-          echo "Deploying backend infrastructure..."
-          cd k8s/
-          kubectl apply -f configmaps.yaml
-          kubectl apply -f secrets.yaml
-          kubectl apply -f product-db.yaml
-          kubectl apply -f order-db.yaml
+          IMAGE_TAG=${{ secrets.ACR_LOGIN_SERVER }}/frontend:${{ github.sha }}
+          echo "Building image: $IMAGE_TAG"
+          docker build -t $IMAGE_TAG ./frontend/
+          echo "Pushing image: $IMAGE_TAG"
+          docker push $IMAGE_TAG
 
-      - name: Deploy Backend Microservices (Product, Order)
+      - name: Set Kubernetes context (get AKS credentials)
+        uses: azure/aks-set-context@v3
+        with:
+          resource-group: ${{ inputs.aks_resource_group }}
+          cluster-name: ${{ inputs.aks_cluster_name }}
+
+      - name: Deploy Frontend to AKS
         run: |
-          echo "Deploying backend microservices..."
-          cd k8s/
-          kubectl apply -f product-service.yaml
-          kubectl apply -f order-service.yaml
-
-      - name: Wait for Backend LoadBalancer IPs
-        run: |
-          echo "Waiting for Product, Order LoadBalancer IPs to be assigned (up to 5 minutes)..."
-          PRODUCT_IP=""
-          ORDER_IP=""
-
-          for i in $(seq 1 60); do
-            echo "Attempt $i/60 to get IPs..."
-            PRODUCT_IP=$(kubectl get service product-service-w08e1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-            ORDER_IP=$(kubectl get service order-service-w08e1 -o jsonpath='{.status.loadBalancer.ingress[0].ip}')
-
-            if [[ -n "$PRODUCT_IP" && -n "$ORDER_IP" ]]; then
-              echo "All backend LoadBalancer IPs assigned!"
-              echo "Product Service IP: $PRODUCT_IP"
-              echo "Order Service IP: $ORDER_IP"
-              break
-            fi
-            sleep 5
-          done
-
-          if [[ -z "$PRODUCT_IP" || -z "$ORDER_IP" ]]; then
-            echo "Error: One or more LoadBalancer IPs not assigned after timeout."
-            exit 1
-          fi
-
-          echo "PRODUCT_IP=$PRODUCT_IP" >> $GITHUB_ENV
-          echo "ORDER_IP=$ORDER_IP" >> $GITHUB_ENV
-
-      - name: Capture Product Service IP for Workflow Output
-        id: get_product_ip
-        run: echo "external_ip=${{ env.PRODUCT_IP }}" >> $GITHUB_OUTPUT
-
-      - name: Capture Order Service IP for Workflow Output
-        id: get_order_ip
-        run: echo "external_ip=${{ env.ORDER_IP }}" >> $GITHUB_OUTPUT
+          echo "Deploying frontend to AKS cluster: ${{ inputs.aks_cluster_name }}"
+          kubectl apply -f k8s/frontend.yaml
 
       - name: Logout from Azure
         run: az logout || true
-
-  deploy_frontend:
-    needs: deploy_backend
-    uses: NachiketJoy/SIT722-week08/.github/workflows/frontend-cd.yml@main
-    with:
-      product_api_ip: ${{ needs.deploy_backend.outputs.PRODUCT_API_IP }}
-      order_api_ip: ${{ needs.deploy_backend.outputs.ORDER_API_IP }}
-      aks_cluster_name: ${{ github.event.inputs.aks_cluster_name }}
-      aks_resource_group: ${{ github.event.inputs.aks_resource_group }}
